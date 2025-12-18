@@ -2,8 +2,10 @@
 Codex Bridge Script for Claude Agent Skills.
 Wraps the Codex CLI to provide a JSON-based interface for Claude.
 """
+from __future__ import annotations
 
 import json
+import re
 import os
 import queue
 import subprocess
@@ -11,9 +13,9 @@ import threading
 import time
 import shutil
 import argparse
-from typing import Generator
+from typing import Generator, List, Optional
 
-def run_shell_command(cmd: list[str]) -> Generator[str, None, None]:
+def run_shell_command(cmd: List[str]) -> Generator[str, None, None]:
     """Execute a command and stream its output line-by-line."""
     popen_cmd = cmd.copy()
     # Resolve executable path
@@ -30,7 +32,7 @@ def run_shell_command(cmd: list[str]) -> Generator[str, None, None]:
         encoding='utf-8',
     )
 
-    output_queue: queue.Queue[str | None] = queue.Queue()
+    output_queue: queue.Queue[Optional[str]] = queue.Queue()
     GRACEFUL_SHUTDOWN_DELAY = 0.3
 
     def is_turn_completed(line: str) -> bool:
@@ -155,7 +157,6 @@ def main():
                 err_message += "\n\n[codex error] " + line_dict.get("error", {}).get("message", "")
             if "error" in line_dict.get("type", ""):
                 error_msg = line_dict.get("message", "")
-                import re
                 is_reconnecting = bool(re.match(r'^Reconnecting\.\.\.\s+\d+/\d+$', error_msg))
 
                 if not is_reconnecting:
